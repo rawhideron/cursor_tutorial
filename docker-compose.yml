@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  kali:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kali-desktop
+    ports:
+      - "3390:3390"
+    volumes:
+      - kali-data:/home/cloud_user
+    restart: unless-stopped
+    privileged: true  # Required for systemd and some Kali tools
+    security_opt:
+      - seccomp:unconfined  # Required for some penetration testing tools
+
+volumes:
+  kali-data:
+    name: kali-data 
