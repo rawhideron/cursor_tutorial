@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     systemd \
     dbus \
     dbus-user-session \
+    kali-linux-everything \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
