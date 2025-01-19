@@ -25,7 +25,8 @@ RUN echo "xfce4-session" > /root/.xsession
 # Create user cloud_user with password 'Batman298'
 RUN useradd -m -s /bin/bash cloud_user && \
     echo "cloud_user:Batman298" | chpasswd && \
-    adduser cloud_user sudo
+    adduser cloud_user sudo && \
+    echo "cloud_user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # Configure XRDP for the new user
 RUN echo "xfce4-session" > /home/cloud_user/.xsession && \
