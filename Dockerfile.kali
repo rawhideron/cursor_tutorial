@@ -1,4 +1,31 @@
-# Use Kali Linux rolling release as base image
+FROM kalilinux/kali-rolling as builder
+
+ARG CLOUD_USER_PASSWORD
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update package lists and install necessary packages
+RUN apt-get update && apt-get install -y adduser \
+    xrdp \
+    xfce4 \
+    xfce4-terminal \
+    dbus-x11 \
+    xorgxrdp \
+    sudo \
+    systemd \
+    dbus \
+    dbus-user-session \
+    kali-linux-everything \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create user and set password in the builder stage
+RUN useradd -m -s /bin/bash cloud_user && \
+    echo "cloud_user:$CLOUD_USER_PASSWORD" | chpasswd && \
+    adduser cloud_user sudo && \
+    echo "cloud_user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# Start final stage
 FROM kalilinux/kali-rolling
 
 # Prevent interactive prompts during package installation
@@ -22,11 +49,12 @@ RUN apt-get update && apt-get install -y \
 # Configure XRDP
 RUN echo "xfce4-session" > /root/.xsession
 
-# Create user cloud_user with password 'Batman298'
-RUN useradd -m -s /bin/bash cloud_user && \
-    echo "cloud_user:Batman298" | chpasswd && \
-    adduser cloud_user sudo && \
-    echo "cloud_user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+# Copy the user setup from builder stage
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/shadow /etc/shadow
+COPY --from=builder /etc/group /etc/group
+COPY --from=builder /etc/sudoers /etc/sudoers
+COPY --from=builder /home/cloud_user /home/cloud_user
 
 # Configure XRDP for the new user
 RUN echo "xfce4-session" > /home/cloud_user/.xsession && \

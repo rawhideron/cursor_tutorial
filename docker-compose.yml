@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile.kali
       args:
-        - CLOUD_USER_PASSWORD=${CLOUD_USER_PASSWORD}
+        CLOUD_USER_PASSWORD: ${CLOUD_USER_PASSWORD}
     container_name: kali-desktop
     ports:
       - "3390:3390"
