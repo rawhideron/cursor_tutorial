@@ -1,0 +1,27 @@
+# Builder stage
+FROM debian:latest as builder
+
+ARG DEBIAN_USER_PASSWORD
+
+RUN echo "Updating package database..." && \
+    apt-get update && \
+    echo "Checking package availability..." && \
+    apt-cache search xrdp sudo && \
+    echo "Installing xrdp and sudo..." && \
+    apt-get install -y xrdp sudo && \
+    echo "Creating cloud_user..." && \
+    useradd -m cloud_user && \
+    echo "Setting password for cloud_user..." && \
+    echo "cloud_user:${DEBIAN_USER_PASSWORD}" | chpasswd && \
+    echo "Adding cloud_user to sudoers..." && \
+    echo "cloud_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Final stage
+FROM debian:latest
+
+COPY --from=builder /home/cloud_user /home/cloud_user
+COPY --from=builder /etc/sudoers /etc/sudoers
+
+EXPOSE 3389
+
+CMD ["/usr/sbin/xrdp", "--nodaemon"] 

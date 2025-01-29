@@ -17,6 +17,58 @@ services:
     security_opt:
       - seccomp:unconfined  # Required for some penetration testing tools
 
+  arch:
+    build: 
+      context: .
+      dockerfile: Dockerfile.arch
+    container_name: arch-desktop
+    ports:
+      - "3391:3389"
+    volumes:
+      - arch-data:/home/cloud_user
+    restart: unless-stopped
+
+  mint:
+    build:
+      context: .
+      dockerfile: Dockerfile.mint
+    container_name: mint-desktop
+    ports:
+      - "3392:3389"
+    volumes:
+      - mint-data:/home/cloud_user
+    restart: unless-stopped
+
+  fedora:
+    build:
+      context: .
+      dockerfile: Dockerfile.fedora
+    container_name: fedora-desktop
+    ports:
+      - "3393:3389"
+    volumes:
+      - fedora-data:/home/cloud_user
+    restart: unless-stopped
+
+  debian:
+    build:
+      context: .
+      dockerfile: Dockerfile.debian
+    container_name: debian-desktop
+    ports:
+      - "3394:3389"
+    volumes:
+      - debian-data:/home/cloud_user
+    restart: unless-stopped
+
 volumes:
   kali-data:
-    name: kali-data 
+    name: kali-data
+  arch-data:
+    name: arch-data
+  mint-data:
+    name: mint-data
+  fedora-data:
+    name: fedora-data
+  debian-data:
+    name: debian-data 

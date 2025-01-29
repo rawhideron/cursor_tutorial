@@ -1,0 +1,30 @@
+# Builder stage
+FROM archlinux:latest as builder
+
+ARG ARCH_USER_PASSWORD
+
+RUN echo "Updating package database..." && \
+    pacman -Syu --noconfirm && \
+    echo "Checking package availability..." && \
+    pacman -Ss xrdp sudo && \
+    echo "Installing xrdp and sudo..." && \
+    pacman -S --noconfirm xrdp sudo && \
+    echo "Creating cloud_user..." && \
+    useradd -m cloud_user && \
+    echo "Setting password for cloud_user..." && \
+    echo "cloud_user:${ARCH_USER_PASSWORD}" | chpasswd && \
+    echo "Adding cloud_user to sudoers..." && \
+    echo "cloud_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Final stage
+FROM archlinux:latest
+
+COPY --from=builder /home/cloud_user /home/cloud_user
+COPY --from=builder /etc/sudoers /etc/sudoers
+
+RUN pacman -Syu --noconfirm && \
+    pacman -S --noconfirm xrdp
+
+EXPOSE 3389
+
+CMD ["/usr/sbin/xrdp", "--nodaemon"] 

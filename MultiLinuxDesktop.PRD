@@ -1,0 +1,58 @@
+# Product Requirements Document (PRD)
+
+## Project Overview
+
+This project involves setting up multiple Linux desktop environments using Docker containers. Each environment is configured to run a specific Linux distribution, providing a virtual desktop experience accessible via remote desktop protocols.
+
+## Objectives
+
+- To provide isolated desktop environments for different Linux distributions.
+- To ensure each environment is accessible via a specific port.
+- To maintain persistent data storage for each environment using Docker volumes.
+
+## Key Features
+
+1. **Multi-Distribution Support**
+   - Support for Kali, Arch, Mint, Fedora, and Debian Linux distributions.
+   - Each distribution is encapsulated in its own Docker container.
+
+2. **Remote Desktop Access**
+   - Each container is configured to allow remote desktop access.
+   - Specific ports are mapped for each distribution to avoid conflicts.
+
+3. **Persistent Storage**
+   - Each container has a dedicated Docker volume for persistent data storage.
+   - Volumes are named according to the distribution for easy identification.
+
+4. **Security and Privileges**
+   - Containers are configured with necessary privileges for system operations.
+   - Security options are set to allow specific tools and operations within the containers.
+
+## Technical Requirements
+
+- **Docker Compose Version**: 3.8
+- **Dockerfiles**: Separate Dockerfiles for each distribution (`Dockerfile.kali`, `Dockerfile.arch`, `Dockerfile.mint`, `Dockerfile.fedora`, `Dockerfile.debian`).
+- **Environment Variables**: Use of `.env` file for sensitive data like passwords.
+- **Ports**: 
+  - Kali: 3390
+  - Arch: 3391
+  - Mint: 3392
+  - Fedora: 3393
+  - Debian: 3394
+
+## Deployment
+
+- **Build Context**: The build context is set to the root directory for all services.
+- **Restart Policy**: Containers are set to restart unless stopped manually.
+- **Volume Management**: Each service has a dedicated volume for data persistence.
+
+## Security Considerations
+
+- **Privileged Mode**: Required for certain distributions to run system-level operations.
+- **Security Options**: Specific security options are configured to allow necessary operations within the containers.
+
+## Future Enhancements
+
+- Support for additional Linux distributions.
+- Enhanced security measures for remote access.
+- Automated updates and maintenance scripts for each environment. 

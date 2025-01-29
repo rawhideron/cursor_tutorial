@@ -1,0 +1,21 @@
+# Builder stage
+FROM fedora:latest as builder
+
+ARG FEDORA_USER_PASSWORD
+
+RUN dnf install -y xrdp sudo && \
+    useradd -m cloud_user && \
+    echo "cloud_user:${FEDORA_USER_PASSWORD}" | chpasswd && \
+    echo "cloud_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Final stage
+FROM fedora:latest
+
+COPY --from=builder /home/cloud_user /home/cloud_user
+COPY --from=builder /etc/sudoers /etc/sudoers
+
+RUN dnf install -y xrdp
+
+EXPOSE 3389
+
+CMD ["/usr/sbin/xrdp", "--nodaemon"] 
