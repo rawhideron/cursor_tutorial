@@ -3,8 +3,71 @@ FROM fedora:latest as builder
 
 ARG FEDORA_USER_PASSWORD
 
-RUN dnf install -y xrdp sudo && \
-    useradd -m cloud_user && \
+
+# Set environment variables
+ENV TZ=UTC \
+    LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8
+
+# Configure DNF and update system
+RUN echo "Installing dnf-command(config-manager)" && \
+    dnf -y install 'dnf-command(config-manager)'
+
+RUN echo "Configuring DNF" && \
+    dnf config-manager --setopt=fastestmirror=1 --setopt=max_parallel_downloads=10 --save
+
+RUN echo "Updating system" && \
+    dnf -y update
+
+RUN echo "Installing epel-release" && \
+    dnf -y install epel-release
+
+RUN echo "Cleaning up" && \
+    dnf clean all
+
+# Install XRDP and core X11 packages
+RUN dnf install -y \
+    xrdp \
+    xorg-x11-xauth \
+    xorg-x11-fonts-Type1 \
+    xorg-x11-fonts-misc \
+    xorg-x11-server-Xorg \
+    tigervnc-server && \
+    dnf clean all
+
+# Install XFCE desktop environment packages
+RUN dnf install -y \
+    xfce4-session \
+    xfce4-panel \
+    xfce4-settings \
+    xfce4-terminal \
+    xfce4-appfinder \
+    thunar && \
+    dnf clean all
+
+# Install additional required packages
+RUN dnf install -y \
+    dbus-x11 \
+    supervisor && \
+    dnf clean all
+
+# Set up XRDP
+RUN systemctl enable xrdp \
+    && echo "xfce4-session" > /etc/skel/.Xclients \
+    && chmod +x /etc/skel/.Xclients
+
+# Create a script to start necessary services
+RUN echo "#!/bin/bash\n\
+/usr/sbin/xrdp-sesman &\n\
+/usr/sbin/xrdp &\n\
+exec tail -F /var/log/xrdp.log" > /start.sh \
+    && chmod +x /start.sh
+
+# Expose RDP port
+EXPOSE 3389
+
+
+RUN useradd -m cloud_user && \
     echo "cloud_user:${FEDORA_USER_PASSWORD}" | chpasswd && \
     echo "cloud_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
@@ -14,8 +77,15 @@ FROM fedora:latest
 COPY --from=builder /home/cloud_user /home/cloud_user
 COPY --from=builder /etc/sudoers /etc/sudoers
 
-RUN dnf install -y xrdp
+
 
 EXPOSE 3389
 
-CMD ["/usr/sbin/xrdp", "--nodaemon"] 
+# Set the default command to start XRDP
+CMD ["/start.sh"]
+
+# Update system
+RUN dnf repolist && \
+    dnf -y update && \
+    dnf -y install epel-release && \
+    dnf clean all
