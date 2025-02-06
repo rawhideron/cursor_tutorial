@@ -1,10 +1,6 @@
 services:
   kali:
-    build:
-      context: .
-      dockerfile: Dockerfile.kali
-      args:
-        CLOUD_USER_PASSWORD: ${CLOUD_USER_PASSWORD}
+    image: rawhideron/kali:3
     container_name: kali-desktop
     ports:
       - "3390:3390"
@@ -46,6 +42,8 @@ services:
     shm_size: 512m
     stdin_open: true
     tty: true
+    # volumes:
+    #   - fedora_data:/home/kasm-user
 
   debian:
     build:
@@ -65,7 +63,7 @@ volumes:
     name: arch-data
   mint-data:
     name: mint-data
-  fedora-data:
-    name: fedora-data
+  # fedora_data:
+  #   name: fedora-data
   debian-data:
-    name: debian-data 
+    name: debian-data

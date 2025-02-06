@@ -3,28 +3,91 @@ FROM archlinux:latest as builder
 
 ARG ARCH_USER_PASSWORD
 
-RUN echo "Updating package database..." && \
-    pacman -Syu --noconfirm && \
-    echo "Checking package availability..." && \
-    pacman -Ss xrdp sudo && \
-    echo "Installing xrdp and sudo..." && \
-    pacman -S --noconfirm xrdp sudo && \
-    echo "Creating cloud_user..." && \
-    useradd -m cloud_user && \
-    echo "Setting password for cloud_user..." && \
-    echo "cloud_user:${ARCH_USER_PASSWORD}" | chpasswd && \
-    echo "Adding cloud_user to sudoers..." && \
-    echo "cloud_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN echo "Updating package database..."
+# Setup proper mirrorlist
+RUN echo '# Arch Linux mirrorlist' > /etc/pacman.d/mirrorlist && \
+    echo '[core]' >> /etc/pacman.d/mirrorlist && \
+    echo 'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist && \
+    echo '[extra]' >> /etc/pacman.d/mirrorlist && \
+    echo 'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist && \
+    echo '[community]' >> /etc/pacman.d/mirrorlist && \
+    echo 'Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist
+# Enable repositories and initialize keyring
+RUN sed -i 's/^#\[community\]/\[community\]/' /etc/pacman.conf && \
+    sed -i 's/^#Include = \/etc\/pacman.d\/mirrorlist/Include = \/etc\/pacman.d\/mirrorlist/' /etc/pacman.conf && \
+    pacman-key --init && \
+    pacman-key --populate archlinux
+RUN pacman -Sy --noconfirm archlinux-keyring
+RUN pacman -Syu --noconfirm go
+RUN echo "Installing sudo..."
+RUN pacman -S --noconfirm --verbose sudo
+RUN echo "Creating cloud_user..."
+RUN useradd -m cloud_user
+RUN echo "Setting password for cloud_user to ${ARCH_USER_PASSWORD}"
+RUN echo "cloud_user:Batman298" | chpasswd
+RUN echo "Adding cloud_user to sudoers..."
+RUN echo "cloud_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Install yay (AUR helper)
+RUN pacman -S --noconfirm git
+RUN pacman -S --noconfirm --needed base-devel
+USER cloud_user
+RUN git clone --verbose https://aur.archlinux.org/yay.git /tmp/yay && \
+    cd /tmp/yay && \
+    makepkg -si --noconfirm && \
+    cd / && \
+    rm -rf /tmp/yay
+USER root
+# Install X11 and XRDP
+RUN pacman -S --noconfirm \
+    xorg-server \
+    xorg-apps \
+    xorg-xinit \
+    xterm \
+    xfce4 \
+    xfce4-goodies
+
+# Use yay to install xrdp from AUR
+USER root
+RUN pacman -Scc --noconfirm
+USER cloud_user
+# RUN yay -Syu --noconfirm
+# RUN yay -S --noconfirm xrdp
+USER root
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+/usr/bin/xrdp-sesman\n\
+/usr/bin/xrdp\n\
+exec /bin/bash' | sudo tee /usr/local/bin/startup.sh > /dev/null && \
+    sudo chmod +x /usr/local/bin/startup.sh
 
 # Final stage
 FROM archlinux:latest
+USER root
 
+# Copy user and sudoers configuration
 COPY --from=builder /home/cloud_user /home/cloud_user
 COPY --from=builder /etc/sudoers /etc/sudoers
 
+# Update and install packages
 RUN pacman -Syu --noconfirm && \
-    pacman -S --noconfirm xrdp
+    pacman -S --noconfirm \
+    sudo \
+    xorg-server \
+    xorg-apps \
+    xorg-xinit \
+    xterm \
+    xfce4 \
+    xfce4-goodies
+
+# Create startup script directly in final stage
+RUN echo '#!/bin/bash\n\
+/usr/bin/xrdp-sesman\n\
+/usr/bin/xrdp\n\
+exec /bin/bash' > /usr/local/bin/startup.sh && \
+    chmod +x /usr/local/bin/startup.sh
 
 EXPOSE 3389
 
-CMD ["/usr/sbin/xrdp", "--nodaemon"] 
+CMD ["/usr/local/bin/startup.sh"]
